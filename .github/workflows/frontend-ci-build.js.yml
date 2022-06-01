@@ -5,20 +5,16 @@ name: Frontend tests and deploy
 
 on:
   push:
-    tags: deploy/[0-9]+.[0-9]+
-    paths:
-      - "front/**"
     branches: 
       - "*"
-
   pull_request:
-    paths:
-      - "front/**"
-    branches: [main]
+    branches:
+      - "*"
 
 jobs:
   tests:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/main' }}
     name: "Static and automated tests"
 
     strategy:
@@ -31,20 +27,14 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.node-version }}
-      - run: echo github.ref
-      - run: echo github.event_name
-      # - run: cd front && npm run typecheck
-      # - run: cd front && npm run test:run
-      # if: "github.ref == 'refs/heads/main' || github.event_name == 'pull_request'"
+      - run: echo ${{ github.ref }}
+      - run: echo ${{ github.event_name }}
 
   deploy:
     runs-on: ubuntu-latest
     if: ${{ contains(join(needs.*.result, ','), 'success') }}
     needs: [tests]
     name: "Vercel deploy (trigger vercel)"
-    env:
-      # VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      # VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
 
     steps:
       - uses: actions/checkout@v2
@@ -53,36 +43,3 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - run: echo "Hello world"
-      # - name: "Copy types"
-      #   working-directory: ./front
-      #   run: |
-      #     mv ../backend/api/src/shared/types ./app/utils/
-      #     cp ../backend/api/src/shared/lib.ts ./app/utils/shared-types.ts
-
-      # - name: "Deploy Dev"
-      #   if: ${{ github.ref == 'refs/heads/main' }}
-      #   run: |
-      #     npx vercel --token ${VERCEL_TOKEN} --prod
-      #   env:
-      #     VERCEL_PROJECT_ID: ${{secrets.VERCEL_PROJECT_ID}}
-
-      # - name: "Deploy Prod"
-      #   if: startsWith( github.ref, 'refs/tags/deploy/')
-      #   run: |
-      #     npx vercel --token ${VERCEL_TOKEN} --prod
-      #   env:
-      #     VERCEL_PROJECT_ID: ${{secrets.VERCEL_PROJECT_ID_PROD}}
-
-      # - name: "Deploy Preview"
-      #   if: "!startsWith( github.ref, 'refs/tags/') && github.ref != 'refs/heads/main'"
-      #   run: |
-      #     npx vercel --token ${VERCEL_TOKEN}
-      #   env:
-      #     VERCEL_PROJECT_ID: ${{secrets.VERCEL_PROJECT_ID}}
-
-      # - name: "Notify slack channel"
-      #   if: startsWith( github.ref, 'refs/tags/deploy/')
-      #   run: |
-      #     curl -X POST -H 'Content-type: application/json' --data '{"text":"Frontend deployed ✅"}' ${SLACK_WEBHOOK}
-      #   env:
-      #     SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
